@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Definición de modelos
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Usuario {
+  id       Int        @id @default(autoincrement()) @map("id_usuario")
+  nombre   String
+  rol      RolUsuario
+  email    String     @unique
+  password String
+
+  @@map("usuarios")
+}
+
+enum RolUsuario {
+  MESERO
+  COCINERO
+  ADMIN
+}
+
+enum EstadoMesa {
+  HABILITADO
+  OCUPADO
+  RESERVADO
+}
+
+model Mesa {
+  id       Int        @id @default(autoincrement()) @map("id_mesa")
+  numero   Int
+  locacion String?
+  estado   EstadoMesa @default(HABILITADO)
+  capacity Int     @default(4)
+  pedidos  Pedido[]
+
+  @@map("mesas")
+}
+
+enum Estado {
+  Disponible
+  Agotado
+  Proximamente
+}
+
+model Producto {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Float
+  imagenUrl   String?
+  categoria   String?
+  estado      Estado   @default(Disponible)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // campo de relación opuesto para ProductoDetallePedido
+  detallePedidos ProductoDetallePedido[]
+}
+
+model Pedido {
+  id        Int             @id @default(autoincrement()) @map("id_pedido")
+  idCliente Int?            @map("id_cliente")
+  mesa      Mesa            @relation(fields: [idMesa], references: [id])
+  idMesa    Int             @map("id_mesa")
+  estado    EstadoPedido
+  fechaHora DateTime        @default(now()) @map("fecha_hora")
+  nombre    String
+  email     String
+  detalles  DetallePedido[]
+  pagos     Pago[]
+
+  @@map("pedidos")
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  PAGADO
+  EN_PREPARACION
+  LISTO
+  ENTREGADO
+}
+
+model DetallePedido {
+  id        Int                     @id @default(autoincrement()) @map("id_detalle")
+  pedido    Pedido                  @relation(fields: [idPedido], references: [id])
+  idPedido  Int                     @map("id_pedido")
+  cantidad  Int
+  subtotal  Float
+  productos ProductoDetallePedido[]
+
+  @@map("detalle_pedidos")
+}
+
+model ProductoDetallePedido {
+  producto      Producto      @relation(fields: [idProducto], references: [id])
+  idProducto    Int           @map("id_producto")
+  detallePedido DetallePedido @relation(fields: [idDetalle], references: [id])
+  idDetalle     Int           @map("id_detalle")
+
+  @@id([idProducto, idDetalle])
+  @@map("producto_detalle_pedidos")
+}
+
+model Pago {
+  id       Int        @id @default(autoincrement()) @map("id_pago")
+  pedido   Pedido     @relation(fields: [idPedido], references: [id])
+  idPedido Int        @map("id_pedido")
+  metodo   MetodoPago
+  estado   EstadoPago
+  monto    Float
+
+  @@map("pagos")
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  MERCADOPAGO
+}
+
+enum EstadoPago {
+  PENDIENTE
+  CONFIRMADO
+}
